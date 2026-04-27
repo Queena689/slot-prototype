@@ -9,32 +9,40 @@
     <style>
         :root { --primary: #00f2fe; --accent: #ff00ff; --dark: #121212; }
         body { margin: 0; background: var(--dark); color: white; font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
         #controls { width: 320px; background: #1a1a1a; padding: 25px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .group { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         select, input { background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 14px; }
+        
         #stage { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #222 0%, #000 100%); position: relative; }
         .slot-machine { display: flex; gap: 10px; background: #222; padding: 15px; border-radius: 12px; border: 4px solid #333; position: relative; }
         .reel { width: 85px; background: #000; border-radius: 6px; display: flex; flex-direction: column; align-items: center; position: relative; }
         .symbol { width: 75px; height: 75px; margin: 8px 0; background: #1a1a1a; border-radius: 6px; flex-shrink: 0; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #444; }
+        
         button.main-btn { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.2s; }
         button.main-btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+
+        /* 動態生成的元件樣式 */
         .sticky-frame { position: absolute; width: 75px; height: 75px; border: 3px solid var(--primary); border-radius: 8px; box-shadow: 0 0 15px var(--primary); z-index: 10; background: rgba(0, 242, 254, 0.1); transform: scale(0); pointer-events: none; }
         .mult-tag { position: absolute; top: -12px; right: -12px; background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .particle { position: absolute; width: 20px; height: 20px; background: var(--accent); border-radius: 50%; z-index: 99; box-shadow: 0 0 15px var(--accent); display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; }
     </style>
 </head>
 <body>
+
     <div id="controls">
         <h2 style="margin:0; color:var(--primary)">MG Spec Tool</h2>
+        
         <div class="group">
             <label>1. 選擇規格情境</label>
-            <select id="spec-mode">
+            <select id="spec-mode" onchange="initMachine()">
                 <option value="sticky">常駐累積 (Sticky Frames)</option>
                 <option value="multiplier">乘倍發射 (Value Launch)</option>
                 <option value="nudge">單顆 Nudge 表演</option>
             </select>
         </div>
+
         <div class="group">
             <label>2. 調整盤面</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
@@ -42,19 +50,27 @@
                 <input type="number" id="rows" value="4" onchange="initMachine()">
             </div>
         </div>
+
         <button class="main-btn" onclick="runDemo()">執行演示表演</button>
+        
         <hr style="border:0; border-top:1px solid #333; width:100%">
-        <p style="font-size:12px; color:#666">製作人筆記：此工具已模組化。表演邏輯現在儲存在 scenarios.js 中。</p>
+        <p style="font-size:12px; color:#666">製作人筆記：切換模式或修改尺寸皆會自動重置。表演數據讀取自 scenarios.js。</p>
     </div>
+
     <div id="stage">
         <div class="slot-machine" id="machine"></div>
     </div>
+
     <script>
+        // 初始化盤面引擎
         function initMachine() {
             const m = document.getElementById('machine');
-            const reelCount = parseInt(document.getElementById('reels').value);
-            const rowCount = parseInt(document.getElementById('rows').value);
+            const reelCount = parseInt(document.getElementById('reels').value) || 5;
+            const rowCount = parseInt(document.getElementById('rows').value) || 4;
+            
+            // 清空當前畫面 (包含常駐框與粒子)
             m.innerHTML = '';
+            
             for(let i=0; i<reelCount; i++) {
                 const r = document.createElement('div');
                 r.className = 'reel';
@@ -63,34 +79,45 @@
                     const s = document.createElement('div');
                     s.className = 'symbol';
                     s.id = `s-${i}-${j}`;
+                    // 最後一輪標記為收集源
                     s.innerText = (i === reelCount - 1) ? "COLLECT" : "SYM";
+                    if(i === reelCount -1) s.style.color = "var(--primary)";
                     r.appendChild(s);
                 }
                 m.appendChild(r);
             }
         }
 
-        // 第三步：完整的 runDemo 調用邏輯
+        // 演示控制引擎
         async function runDemo() {
             const mode = document.getElementById('spec-mode').value;
             const reelCount = parseInt(document.getElementById('reels').value);
             const rowCount = parseInt(document.getElementById('rows').value);
             
-            // 隨機選一個目標 (1 ~ Reel-1)
+            // 隨機選一個目標 (非最後一輪)
             const targetReel = Math.floor(Math.random() * (reelCount - 1));
             const targetRow = Math.floor(Math.random() * rowCount);
             const targetId = `s-${targetReel}-${targetRow}`;
             const reelId = `reel-${targetReel}`;
+            const sourceId = `s-${reelCount-1}-${rowCount-1}`;
 
-            // 呼叫外部 scenarios.js 裡的模組
+            // 確保 Scenarios 模組已從 scenarios.js 載入
+            if (typeof Scenarios === 'undefined') {
+                console.error("錯誤：找不到 scenarios.js 檔案，請確認它與 index.html 在同一目錄下。");
+                return;
+            }
+
+            // 調用對應的表演函數
             if (mode === 'sticky') {
-                Scenarios.stickyCollect(targetId, 'machine', `s-${reelCount-1}-${rowCount-1}`, false);
+                Scenarios.stickyCollect(targetId, 'machine', sourceId, false);
             } else if (mode === 'multiplier') {
-                Scenarios.stickyCollect(targetId, 'machine', `s-${reelCount-1}-${rowCount-1}`, true);
+                Scenarios.stickyCollect(targetId, 'machine', sourceId, true);
             } else if (mode === 'nudge') {
                 Scenarios.nudgeReel(reelId, targetId);
             }
         }
+
+        // 網頁開啟時自動執行
         window.onload = initMachine;
     </script>
 </body>

@@ -3,66 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MG Slot Spec Editor</title>
+    <title>MG Spec Tool - Nudge Expand Prototyper</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="scenarios.js"></script>
     <style>
-        :root { --primary: #00f2fe; --accent: #ff00ff; --dark: #121212; --code: #1e1e1e; }
-        body { margin: 0; background: var(--dark); color: white; font-family: 'Fira Code', monospace; display: flex; height: 100vh; overflow: hidden; }
+        :root { --primary: #00f2fe; --accent: #ff00ff; --gold: #ffd700; --dark: #121212; }
+        body { margin: 0; background: var(--dark); color: white; font-family: monospace; display: flex; height: 100vh; overflow: hidden; }
         
         #controls { width: 350px; background: #1a1a1a; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
         .group { display: flex; flex-direction: column; gap: 8px; }
-        label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        select, input, textarea { background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 13px; }
+        label { font-size: 11px; color: #888; text-transform: uppercase; }
+        textarea, input, select { background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 13px; }
         
-        #stage { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #222 0%, #000 100%); }
+        #stage { flex-grow: 1; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #222 0%, #000 100%); }
         .slot-machine { display: flex; gap: 10px; background: #222; padding: 15px; border-radius: 12px; border: 4px solid #333; position: relative; }
         .reel { width: 80px; background: #000; border-radius: 6px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .symbol { width: 70px; height: 70px; margin: 8px 0; background: #1a1a1a; border-radius: 6px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; }
+        .symbol { width: 70px; height: 70px; margin: 8px 0; background: #1a1a1a; border-radius: 6px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #444; }
         
-        button.main-btn { background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button { background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; }
         button.script-btn { background: var(--accent); color: white; }
         button:hover { filter: brightness(1.2); transform: translateY(-2px); }
 
-        .sticky-frame { position: absolute; width: 70px; height: 70px; border: 3px solid var(--primary); border-radius: 8px; box-shadow: 0 0 15px var(--primary); z-index: 10; background: rgba(0, 242, 254, 0.1); transform: scale(0); pointer-events: none; }
-        .mult-tag { position: absolute; top: -10px; right: -10px; background: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
-        .particle { position: absolute; width: 20px; height: 20px; background: var(--accent); border-radius: 50%; z-index: 99; box-shadow: 0 0 15px var(--accent); color:white; display:flex; align-items:center; justify-content:center; font-size:9px; }
+        .particle { position: absolute; width: 20px; height: 20px; background: var(--gold); border-radius: 50%; z-index: 99; box-shadow: 0 0 15px var(--gold); }
     </style>
 </head>
 <body>
 
     <div id="controls">
-        <h2 style="margin:0; color:var(--primary); font-size:20px;">MG SPEC EDITOR</h2>
+        <h2 style="margin:0; color:var(--primary)">SPEC PROTOTYPER</h2>
         
         <div class="group">
-            <label>1. 基本表演</label>
-            <select id="spec-mode" onchange="initMachine()">
-                <option value="sticky">常駐累積</option>
-                <option value="multiplier">乘倍發射</option>
-                <option value="nudge">單顆 Nudge</option>
-            </select>
-            <button class="main-btn" onclick="runDemo()">執行預設表演</button>
+            <label>自定義腳本 (測試中心擴展)</label>
+            <textarea id="custom-script" rows="10">// 測試腳本：
+// 1. 震動
+Scenarios.shake(0.2); 
+// 2. 以 s-2-2 為中心垂直擴展 5 格
+Scenarios.nudgeExpand('s-2-2');</textarea>
+            <button class="script-btn" onclick="runCustomScript()">運行 Nudge 擴展表演</button>
         </div>
 
         <div class="group">
-            <label>2. 自定義規格腳本 (JS)</label>
-            <textarea id="custom-script" rows="8" placeholder="// 範例：
-Scenarios.nudge(0); 
-Scenarios.shake(0.3);
-Scenarios.launch('s-2-2', 'X10');">Scenarios.shake(0.2);
-Scenarios.nudge(1);
-Scenarios.launch('s-0-0', 'X50');</textarea>
-            <button class="main-btn script-btn" onclick="runCustomScript()">運行新規格表演</button>
-        </div>
-
-        <div class="group">
-            <label>3. 盤面設定</label>
+            <label>快速設定</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <input type="number" id="reels" value="5" onchange="initMachine()">
-                <input type="number" id="rows" value="4" onchange="initMachine()">
+                <input type="number" id="rows" value="5" onchange="initMachine()">
             </div>
+            <p style="font-size:10px; color:#555">提示：擴展 5 格建議 Rows 設為 5 以上。</p>
         </div>
-        <p style="font-size:10px; color:#555;">提示：s-輪-行 (從0開始)。例如 s-0-0 是左上角第一格。</p>
+        
+        <button onclick="initMachine()">重置盤面</button>
     </div>
 
     <div id="stage">
@@ -72,13 +61,13 @@ Scenarios.launch('s-0-0', 'X50');</textarea>
     <script>
         function initMachine() {
             const m = document.getElementById('machine');
-            const reelCount = parseInt(document.getElementById('reels').value);
-            const rowCount = parseInt(document.getElementById('rows').value);
+            const reels = parseInt(document.getElementById('reels').value);
+            const rows = parseInt(document.getElementById('rows').value);
             m.innerHTML = '';
-            for(let i=0; i<reelCount; i++) {
+            for(let i=0; i<reels; i++) {
                 const r = document.createElement('div');
                 r.className = 'reel'; r.id = `reel-${i}`;
-                for(let j=0; j<rowCount; j++) {
+                for(let j=0; j<rows; j++) {
                     const s = document.createElement('div');
                     s.className = 'symbol'; s.id = `s-${i}-${j}`;
                     s.innerText = `[${i},${j}]`;
@@ -88,27 +77,14 @@ Scenarios.launch('s-0-0', 'X50');</textarea>
             }
         }
 
-        async function runDemo() {
-            const mode = document.getElementById('spec-mode').value;
-            const reels = parseInt(document.getElementById('reels').value);
-            const rows = parseInt(document.getElementById('rows').value);
-            const targetId = `s-${Math.floor(Math.random()*(reels-1))}-${Math.floor(Math.random()*rows)}`;
-            
-            if (mode === 'sticky') Scenarios.stickyCollect(targetId, 'machine', `s-${reels-1}-${rows-1}`, false);
-            else if (mode === 'multiplier') Scenarios.stickyCollect(targetId, 'machine', `s-${reels-1}-${rows-1}`, true);
-            else if (mode === 'nudge') Scenarios.nudge(Math.floor(Math.random()*(reels-1)));
-        }
-
-        // 核心功能：執行自定義腳本
         async function runCustomScript() {
             const scriptStr = document.getElementById('custom-script').value;
             try {
-                // 使用 AsyncFunction 支援 await 語法
                 const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
                 const fn = new AsyncFunction('Scenarios', scriptStr);
                 await fn(Scenarios);
             } catch (e) {
-                alert("腳本錯誤: " + e.message);
+                alert("語法錯誤: " + e.message);
             }
         }
 

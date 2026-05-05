@@ -1,47 +1,86 @@
 /**
- * MG Slot 動作指令引擎
- * 這裡定義了所有基礎動作，你可以透過網頁介面自由組合它們
+ * MG Slot 動作指令引擎 - 擴展版
  */
 const Scenarios = {
     
-    // 基礎工具：取得物件位置
-    getPos: (id) => {
-        const el = document.getElementById(id);
-        const machine = document.getElementById('machine');
-        if (!el || !machine) return { x: 0, y: 0 };
-        const eRect = el.getBoundingClientRect();
-        const mRect = machine.getBoundingClientRect();
-        return {
-            x: eRect.left - mRect.left,
-            y: tRect = eRect.top - mRect.top,
-            width: eRect.width,
-            height: eRect.height
-        };
-    },
+    // 1. 核心動作：中心點擴展表演 (上下各延展，共5格)
+    nudgeExpand: async (centerId) => {
+        const [_, reelIdx, rowIdx] = centerId.split('-').map(Number);
+        const rowCount = parseInt(document.getElementById('rows').value);
+        const centerSym = document.getElementById(centerId);
+        
+        if (!centerSym) return;
 
-    // 1. Nudge 推動輪軸
-    // 參數: reelIndex (0-4), intensity (震動強度)
-    nudge: (reelIndex, intensity = 15) => {
-        const reel = document.getElementById(`reel-${reelIndex}`);
-        if (!reel) return;
-        console.log(`執行指令: Nudge Reel ${reelIndex}`);
-        return gsap.to(reel, { 
-            y: intensity, 
+        console.log(`執行擴展表演，中心點: ${centerId}`);
+        const tl = gsap.timeline();
+
+        // Step 1: 中心符號先變色並震動
+        tl.to(centerSym, { 
+            backgroundColor: "#ffd700", 
+            innerText: "COIN",
+            color: "#000",
+            scale: 1.2,
+            duration: 0.2,
+            ease: "back.out(2)"
+        });
+
+        // Step 2: 定義上下擴展的距離 (1格與2格)
+        const expansionSteps = [
+            { offset: 1, color: "rgba(255, 215, 0, 0.8)" }, // 鄰居
+            { offset: 2, color: "rgba(255, 215, 0, 0.5)" }  // 邊緣
+        ];
+
+        // Step 3: 依序執行擴散動畫
+        for (const step of expansionSteps) {
+            const targets = [];
+            if (rowIdx - step.offset >= 0) targets.push(`s-${reelIdx}-${rowIdx - step.offset}`);
+            if (rowIdx + step.offset < rowCount) targets.push(`s-${reelIdx}-${rowIdx + step.offset}`);
+
+            targets.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    tl.to(el, {
+                        backgroundColor: step.color,
+                        innerText: "COIN",
+                        color: "#000",
+                        scale: 1.1,
+                        border: "2px solid #ffd700",
+                        boxShadow: "0 0 15px #ffd700",
+                        duration: 0.15,
+                        ease: "power2.out"
+                    }, "-=0.05"); // 稍微重疊，讓動作更流暢
+                }
+            });
+        }
+
+        // 最後全體彈跳一下
+        tl.to(`[id^="s-${reelIdx}-"]`, { 
+            y: -5, 
             duration: 0.1, 
             yoyo: true, 
-            repeat: 5, 
-            ease: "power1.inOut" 
+            repeat: 1 
+        });
+
+        return tl;
+    },
+
+    // 2. 既有的盤面震動
+    shake: (duration = 0.5) => {
+        return gsap.to('#machine', { 
+            x: 8, 
+            duration: 0.05, 
+            yoyo: true, 
+            repeat: Math.floor(duration / 0.05) 
         });
     },
 
-    // 2. Launch 發射粒子 (不帶常駐框)
-    // 參數: targetId (如 's-1-1'), multiplier (文字)
+    // 3. 基礎發射 (相容舊邏輯)
     launch: async (targetId, multiplier = "") => {
         const machine = document.getElementById('machine');
         const target = document.getElementById(targetId);
-        const reelCount = parseInt(document.getElementById('reels').value);
-        const rowCount = parseInt(document.getElementById('rows').value);
-        const source = document.getElementById(`s-${reelCount-1}-${rowCount-1}`);
+        const reels = parseInt(document.getElementById('reels').value);
+        const rows = parseInt(document.getElementById('rows').value);
+        const source = document.getElementById(`s-${reels-1}-${rows-1}`);
 
         const mRect = machine.getBoundingClientRect();
         const tRect = target.getBoundingClientRect();
@@ -58,53 +97,8 @@ const Scenarios = {
             left: (tRect.left - mRect.left + 30),
             top: (tRect.top - mRect.top + 30),
             duration: 0.5,
-            ease: "back.out(1.2)"
+            ease: "power2.in"
         });
         p.remove();
-        return gsap.to(target, { scale: 1.2, duration: 0.1, yoyo: true, repeat: 1 });
-    },
-
-    // 3. Shake 盤面震動
-    // 參數: duration (秒)
-    shake: (duration = 0.5) => {
-        console.log("執行指令: 盤面震動");
-        return gsap.to('#machine', { 
-            x: 8, 
-            duration: 0.05, 
-            yoyo: true, 
-            repeat: Math.floor(duration / 0.05) 
-        });
-    },
-
-    // 4. Flash 符號閃爍 (強調規格)
-    // 參數: targetId
-    flash: (targetId) => {
-        const el = document.getElementById(targetId);
-        if (!el) return;
-        return gsap.to(el, { 
-            backgroundColor: "#00f2fe", 
-            filter: "brightness(2)",
-            duration: 0.2, 
-            yoyo: true, 
-            repeat: 3 
-        });
-    },
-
-    // 5. 既有的常駐框邏輯 (為了相容舊選單)
-    stickyCollect: async (targetId, machineId, sourceId, isMultiplier) => {
-        // ... (保留之前的代碼，讓舊按鈕能跑) ...
-        await Scenarios.launch(targetId, isMultiplier ? "X5" : "");
-        const target = document.getElementById(targetId);
-        const machine = document.getElementById(machineId);
-        const tRect = target.getBoundingClientRect();
-        const mRect = machine.getBoundingClientRect();
-
-        const frame = document.createElement('div');
-        frame.className = 'sticky-frame';
-        frame.style.left = (tRect.left - mRect.left) + 'px';
-        frame.style.top = (tRect.top - mRect.top) + 'px';
-        if (isMultiplier) frame.innerHTML = `<div class="mult-tag">X5</div>`;
-        machine.appendChild(frame);
-        gsap.to(frame, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out" });
     }
 };

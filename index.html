@@ -3,55 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MG Spec Tool - Nudge Expand Prototyper</title>
+    <title>MG Spec Prototyper - Lightning Collect</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="scenarios.js"></script>
     <style>
-        :root { --primary: #00f2fe; --accent: #ff00ff; --gold: #ffd700; --dark: #121212; }
+        :root { --primary: #00f2fe; --accent: #ff00ff; --gold: #ffd700; --dark: #0a0a0a; }
         body { margin: 0; background: var(--dark); color: white; font-family: monospace; display: flex; height: 100vh; overflow: hidden; }
         
-        #controls { width: 350px; background: #1a1a1a; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        /* 左側控制面板 */
+        #controls { width: 320px; background: #151515; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 15px; z-index: 100; }
         .group { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 11px; color: #888; text-transform: uppercase; }
-        textarea, input, select { background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 13px; }
+        textarea, input { background: #222; border: 1px solid #444; color: var(--primary); padding: 10px; border-radius: 6px; font-size: 12px; }
         
-        #stage { flex-grow: 1; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #222 0%, #000 100%); }
-        .slot-machine { display: flex; gap: 10px; background: #222; padding: 15px; border-radius: 12px; border: 4px solid #333; position: relative; }
-        .reel { width: 80px; background: #000; border-radius: 6px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        .symbol { width: 70px; height: 70px; margin: 8px 0; background: #1a1a1a; border-radius: 6px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #444; }
+        /* 右側演示舞台 */
+        #stage { flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; }
         
-        button { background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 5px; }
-        button.script-btn { background: var(--accent); color: white; }
-        button:hover { filter: brightness(1.2); transform: translateY(-2px); }
+        /* 實機圖片背景盤面 */
+        .slot-machine { 
+            width: 480px; 
+            height: 320px; 
+            background-image: url('image_b08d75.jpg'); 
+            background-size: cover;
+            background-position: center bottom;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 4px;
+            padding: 10px;
+            position: relative;
+            border: 2px solid #444;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
 
-        .particle { position: absolute; width: 20px; height: 20px; background: var(--gold); border-radius: 50%; z-index: 99; box-shadow: 0 0 15px var(--gold); }
+        /* 透明符號層 (僅供對位) */
+        .symbol { 
+            background: rgba(0, 242, 254, 0.05); 
+            border: 1px dashed rgba(255, 255, 255, 0.1); 
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: rgba(255,255,255,0.2);
+            pointer-events: none;
+        }
+
+        /* 閃電與框框特效 */
+        .lightning-bolt {
+            position: absolute;
+            font-size: 24px;
+            z-index: 1000;
+            text-shadow: 0 0 10px var(--primary), 0 0 20px #fff;
+            pointer-events: none;
+            font-weight: bold;
+        }
+
+        .multiplier-frame {
+            position: absolute;
+            width: 70px; height: 70px;
+            border: 4px solid var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--accent);
+            z-index: 500;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none;
+        }
+        .mult-tag {
+            background: var(--accent);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            transform: translateY(-40px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        button { background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button.script-btn { background: var(--accent); color: white; margin-top: 10px; }
+        button:hover { filter: brightness(1.2); transform: scale(1.02); }
     </style>
 </head>
 <body>
 
     <div id="controls">
-        <h2 style="margin:0; color:var(--primary)">SPEC PROTOTYPER</h2>
+        <h2 style="margin:0; color:var(--primary); font-size:18px;">LIGHTNING COLLECT</h2>
         
         <div class="group">
-            <label>自定義腳本 (測試中心擴展)</label>
-            <textarea id="custom-script" rows="10">// 測試腳本：
-// 1. 震動
-Scenarios.shake(0.2); 
-// 2. 以 s-2-2 為中心垂直擴展 5 格
-Scenarios.nudgeExpand('s-2-2');</textarea>
-            <button class="script-btn" onclick="runCustomScript()">運行 Nudge 擴展表演</button>
+            <label>表演腳本 (Script)</label>
+            <textarea id="custom-script" rows="12">// 測試 Zeus 甩出閃電：
+// 1. 震動預熱
+Scenarios.shake(0.2);
+// 2. 從右下角的手 (s-4-2) 
+//    發射 X2 到第四輪金幣 (s-3-0)
+Scenarios.throwLightning('s-3-0', 'X2');</textarea>
+            <button class="script-btn" onclick="runCustomScript()">執行閃電發射</button>
         </div>
 
         <div class="group">
-            <label>快速設定</label>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <input type="number" id="reels" value="5" onchange="initMachine()">
-                <input type="number" id="rows" value="5" onchange="initMachine()">
-            </div>
-            <p style="font-size:10px; color:#555">提示：擴展 5 格建議 Rows 設為 5 以上。</p>
+            <p style="font-size:11px; color:#666;">
+                對位提示：<br>
+                 Zeus 手位置：[4, 2]<br>
+                 上方金幣：[3, 0]<br>
+                 下方金幣：[3, 1]
+            </p>
+            <button onclick="initMachine()">重置盤面</button>
         </div>
-        
-        <button onclick="initMachine()">重置盤面</button>
     </div>
 
     <div id="stage">
@@ -61,19 +119,15 @@ Scenarios.nudgeExpand('s-2-2');</textarea>
     <script>
         function initMachine() {
             const m = document.getElementById('machine');
-            const reels = parseInt(document.getElementById('reels').value);
-            const rows = parseInt(document.getElementById('rows').value);
             m.innerHTML = '';
-            for(let i=0; i<reels; i++) {
-                const r = document.createElement('div');
-                r.className = 'reel'; r.id = `reel-${i}`;
-                for(let j=0; j<rows; j++) {
+            for(let j=0; j<3; j++) { // Rows
+                for(let i=0; i<5; i++) { // Reels
                     const s = document.createElement('div');
-                    s.className = 'symbol'; s.id = `s-${i}-${j}`;
+                    s.className = 'symbol';
+                    s.id = `s-${i}-${j}`;
                     s.innerText = `[${i},${j}]`;
-                    r.appendChild(s);
+                    m.appendChild(s);
                 }
-                m.appendChild(r);
             }
         }
 

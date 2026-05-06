@@ -46,7 +46,7 @@ const Scenarios = {
         const frame = document.createElement('div');
         frame.className = 'multiplier-frame';
         frame.innerHTML = `<div class="mult-tag">${multText}</div>`;
-        frame.style.left = (tRect.left - mRect.left + 5) + 'px';
+        frame.style.left = (tRect.left - mRect.left - 15) + 'px';
         frame.style.top = (tRect.top - mRect.top + 5) + 'px';
         machine.appendChild(frame);
 

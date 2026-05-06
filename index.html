@@ -3,113 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MG Spec Prototyper - Lightning Collect</title>
+    <title>MG Slot Spec Tool - All-in-One Prototyper</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="scenarios.js"></script>
     <style>
         :root { --primary: #00f2fe; --accent: #ff00ff; --gold: #ffd700; --dark: #0a0a0a; }
         body { margin: 0; background: var(--dark); color: white; font-family: monospace; display: flex; height: 100vh; overflow: hidden; }
         
-        /* 左側控制面板 */
-        #controls { width: 320px; background: #151515; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 15px; z-index: 100; }
-        .group { display: flex; flex-direction: column; gap: 8px; }
-        label { font-size: 11px; color: #888; text-transform: uppercase; }
-        textarea, input { background: #222; border: 1px solid #444; color: var(--primary); padding: 10px; border-radius: 6px; font-size: 12px; }
+        #controls { width: 350px; background: #151515; padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 15px; z-index: 100; overflow-y: auto; }
+        .group { display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        textarea, input, select { background: #222; border: 1px solid #444; color: var(--primary); padding: 8px; border-radius: 6px; font-size: 12px; }
         
-        /* 右側演示舞台 */
-        #stage { flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; }
-        
-        /* 實機圖片背景盤面 */
+        #stage { flex-grow: 1; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #222 0%, #000 100%); }
         .slot-machine { 
-            width: 480px; 
-            height: 320px; 
-            background-image: url('image_b08d75.jpg'); 
-            background-size: cover;
-            background-position: center bottom;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 4px;
-            padding: 10px;
-            position: relative;
-            border: 2px solid #444;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            width: 480px; height: 320px; 
+            background-size: cover; background-position: center;
+            display: grid; gap: 4px; padding: 10px; position: relative; border: 1px dashed #444;
         }
-
-        /* 透明符號層 (僅供對位) */
-        .symbol { 
-            background: rgba(0, 242, 254, 0.05); 
-            border: 1px dashed rgba(255, 255, 255, 0.1); 
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            color: rgba(255,255,255,0.2);
-            pointer-events: none;
-        }
-
-        /* 閃電與框框特效 */
-        .lightning-bolt {
-            position: absolute;
-            font-size: 24px;
-            z-index: 1000;
-            text-shadow: 0 0 10px var(--primary), 0 0 20px #fff;
-            pointer-events: none;
-            font-weight: bold;
-        }
-
-        .multiplier-frame {
-            position: absolute;
-            width: 70px; height: 70px;
-            border: 4px solid var(--accent);
-            border-radius: 50%;
-            box-shadow: 0 0 20px var(--accent);
-            z-index: 500;
-            display: flex; align-items: center; justify-content: center;
-            pointer-events: none;
-        }
-        .mult-tag {
-            background: var(--accent);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            transform: translateY(-40px);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
-
+        .reel { position: relative; overflow: visible; display: flex; flex-direction: column; align-items: center; }
+        .symbol { width: 100%; height: 70px; background: rgba(255,255,255,0.05); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: rgba(255,255,255,0.2); pointer-events: none; }
+        
         button { background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button.script-btn { background: var(--accent); color: white; margin-top: 10px; }
+        button.script-btn { background: var(--accent); color: white; }
         button:hover { filter: brightness(1.2); transform: scale(1.02); }
+
+        /* 特效 CSS */
+        .multiplier-frame { position: absolute; width: 70px; height: 70px; border: 4px solid var(--accent); border-radius: 50%; box-shadow: 0 0 15px var(--accent); z-index: 500; display: flex; align-items: center; justify-content: center; }
+        .mult-tag { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 14px; font-weight: bold; transform: translateY(-42px); }
+        .lightning-bolt { position: absolute; font-size: 24px; z-index: 1000; text-shadow: 0 0 10px var(--primary); }
     </style>
 </head>
 <body>
-
     <div id="controls">
-        <h2 style="margin:0; color:var(--primary); font-size:18px;">LIGHTNING COLLECT</h2>
+        <h2 style="color:var(--primary); font-size:18px; margin:0;">ULTIMATE PROTOTYPER</h2>
         
         <div class="group">
-            <label>表演腳本 (Script)</label>
-            <textarea id="custom-script" rows="12">// 測試 Zeus 甩出閃電：
-// 1. 震動預熱
-Scenarios.shake(0.2);
-// 2. 從右下角的手 (s-4-2) 
-//    發射 X2 到第四輪金幣 (s-3-0)
-Scenarios.throwLightning('s-3-0', 'X2');</textarea>
-            <button class="script-btn" onclick="runCustomScript()">執行閃電發射</button>
+            <label>1. 背景設定</label>
+            <input type="file" accept="image/*" onchange="handleImageUpload(this)">
         </div>
 
         <div class="group">
-            <p style="font-size:11px; color:#666;">
-                對位提示：<br>
-                 Zeus 手位置：[4, 2]<br>
-                 上方金幣：[3, 0]<br>
-                 下方金幣：[3, 1]
-            </p>
-            <button onclick="initMachine()">重置盤面</button>
+            <label>2. 快速選項 (預設情境)</label>
+            <select id="spec-mode" onchange="initMachine()">
+                <option value="lightning">閃電累加 (image_b08d75)</option>
+                <option value="expand">Nudge 中心擴展 (5格)</option>
+                <option value="sticky">常駐累積框</option>
+            </select>
+            <button onclick="runDefaultDemo()">執行快速演示</button>
         </div>
+
+        <div class="group">
+            <label>3. 盤面尺寸 (Reels x Rows)</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                <input type="number" id="reels" value="5" onchange="initMachine()">
+                <input type="number" id="rows" value="3" onchange="initMachine()">
+            </div>
+        </div>
+
+        <div class="group">
+            <label>4. 自定義腳本</label>
+            <textarea id="custom-script" rows="6">Scenarios.throwLightning('s-3-0', 2);</textarea>
+            <button class="script-btn" onclick="runCustomScript()">運行腳本表演</button>
+        </div>
+
+        <button style="background:#444; color:white;" onclick="location.reload()">全域重置</button>
     </div>
 
     <div id="stage">
@@ -117,29 +75,45 @@ Scenarios.throwLightning('s-3-0', 'X2');</textarea>
     </div>
 
     <script>
+        function handleImageUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => { document.getElementById('machine').style.backgroundImage = `url('${e.target.result}')`; };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
         function initMachine() {
             const m = document.getElementById('machine');
+            const reels = document.getElementById('reels').value;
+            const rows = document.getElementById('rows').value;
+            m.style.gridTemplateColumns = `repeat(${reels}, 1fr)`;
             m.innerHTML = '';
-            for(let j=0; j<3; j++) { // Rows
-                for(let i=0; i<5; i++) { // Reels
+            for(let i=0; i<reels; i++) {
+                const r = document.createElement('div');
+                r.className = 'reel'; r.id = `reel-${i}`;
+                for(let j=0; j<rows; j++) {
                     const s = document.createElement('div');
-                    s.className = 'symbol';
-                    s.id = `s-${i}-${j}`;
+                    s.className = 'symbol'; s.id = `s-${i}-${j}`;
                     s.innerText = `[${i},${j}]`;
-                    m.appendChild(s);
+                    r.appendChild(s);
                 }
+                m.appendChild(r);
             }
+        }
+
+        async function runDefaultDemo() {
+            const mode = document.getElementById('spec-mode').value;
+            if (mode === 'lightning') await Scenarios.throwLightning('s-3-0', 2);
+            else if (mode === 'expand') await Scenarios.nudgeExpand('s-2-1');
+            else if (mode === 'sticky') await Scenarios.stickyCollect('s-1-1', 'machine', 's-4-2', false);
         }
 
         async function runCustomScript() {
             const scriptStr = document.getElementById('custom-script').value;
-            try {
-                const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-                const fn = new AsyncFunction('Scenarios', scriptStr);
-                await fn(Scenarios);
-            } catch (e) {
-                alert("語法錯誤: " + e.message);
-            }
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const fn = new AsyncFunction('Scenarios', scriptStr);
+            await fn(Scenarios);
         }
 
         window.onload = initMachine;
